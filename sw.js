@@ -1,6 +1,6 @@
 /* TradeJournal service worker — cache-first with background refresh (same pattern as budget/CANdo).
    Bump CACHE on every release so clients pick up the new files. Cross-origin requests (fonts, future Supabase sync) pass through. */
-const CACHE = 'tj-v1.0.0';
+const CACHE = 'tj-v1.1.0';
 const ASSETS = [
   './',
   './index.html',
