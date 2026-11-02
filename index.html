@@ -56,6 +56,7 @@ html.ocean{
   --acc:#0abab5;--acc-ink:#2ed3cd;--on-acc:#04201f;--acc-bg:rgba(10,186,181,.15);
   --sec:#a99bff;--sec-bg:rgba(139,124,246,.18);--hl:#f7c948;--warn:#f7c948;
   --seg-on:rgba(139,124,246,.24);--seg-on-ink:#ffffff;--sel:#a99bff;--heat-neg:#ff3b5c;
+  --eq:#a99bff; /* v1.1.1: equity curve is purple in Ocean (PnL colours stay green/red) */
   --shadow:0 1px 2px rgba(3,6,20,.45);
   color-scheme:dark;
 }
@@ -261,6 +262,7 @@ html[lang=fa] .tag{font-family:var(--f-fa)}
 .inp:focus{border-color:var(--acc);outline:none}
 .inp.ltr{direction:ltr;text-align:left;font-family:var(--f-en)}
 html[lang=fa] .inp.ltr::placeholder{font-family:var(--f-fa)}
+html[lang=fa] .inp.numf{font-family:var(--f-fa);font-variant-numeric:tabular-nums} /* v1.1.1: grouped Persian numbers match display font */
 textarea.inp{min-height:96px;padding:10px 12px;resize:vertical;line-height:1.6}
 select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-size:5px 5px;background-repeat:no-repeat;background-position:left 14px center,left 9px center;padding-inline-end:30px}
 html[dir=ltr] select.inp{background-position:right 9px center,right 14px center}
@@ -391,7 +393,7 @@ html.lkd #lock{display:flex}
     <button class="nav" data-go="cal"><svg class="i"><use href="#i-cal"/></svg><span data-i="nav.cal">تقویم</span></button>
     <button class="nav" data-go="stats"><svg class="i"><use href="#i-bars"/></svg><span data-i="nav.stats">آمار</span></button>
     <button class="btn pri" data-act="add"><svg class="i"><use href="#i-plus"/></svg><span data-i="newTrade">معامله جدید</span></button>
-    <div class="foot">v1.1.0</div>
+    <div class="foot">v1.1.1</div>
   </aside>
 
   <header class="top">
@@ -469,12 +471,12 @@ html.lkd #lock{display:flex}
 <script>
 'use strict';
 /* ============================================================
-   TradeJournal v1.1.0 — single-file PWA, no build step.
+   TradeJournal v1.1.1 — single-file PWA, no build step.
    State: one JSON object S in localStorage (key tj-state-v1),
    so a Supabase sync layer (like budget/sync.js) can be added later.
    Screenshots: IndexedDB tj-db / store "shots" (key -> dataURL).
    ============================================================ */
-const VER='1.1.0', SK='tj-state-v1', LK='tj-lock';
+const VER='1.1.1', SK='tj-state-v1', LK='tj-lock';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[<>&"']/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[m]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -584,6 +586,21 @@ const _nf={};
 function nf(n,min=2,max=min){const k=numLoc()+min+'-'+max;return(_nf[k]||(_nf[k]=new Intl.NumberFormat(numLoc(),{minimumFractionDigits:min,maximumFractionDigits:max}))).format(n)}
 const dig=s=>faDig()?String(s).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]):String(s);
 const N=s=>`<bdi class="n">${s}</bdi>`;
+const int=n=>nf(n,0); // grouped integer (counts etc.)
+/* v1.1.1 live thousands grouping for number inputs. Display: ٬/٫ with Persian digits, ,/. with latin digits. Storage stays a plain Number (parseNum strips both). */
+const toLat=v=>String(v).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+const numCore=v=>{v=toLat(v).replace(/[٫]/g,'.').replace(/[^0-9.]/g,'');const i=v.indexOf('.');return i<0?v:v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'')};
+function groupNum(core){if(core==='')return'';const fa=faDig(),i=core.indexOf('.');let a=i<0?core:core.slice(0,i),b=i<0?null:core.slice(i+1);
+  a=a.replace(/\B(?=(\d{3})+(?!\d))/g,fa?'٬':',');let o=a+(b==null?'':(fa?'٫':'.')+b);return fa?o.replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]):o}
+const numStr=n=>{if(n===''||n==null)return'';const x=Number(n);if(!isFinite(x))return String(n);return x.toLocaleString('en-US',{useGrouping:false,maximumFractionDigits:20})};
+const fmtIn=n=>groupNum(numCore(numStr(n)));
+const isSig=c=>/[0-9۰-۹٠-٩.٫]/.test(c);
+function liveNum(el,e){if(e&&e.isComposing)return;const old=el._pv??el.defaultValue??'',val=el.value;let pos=el.selectionStart==null?val.length:el.selectionStart;
+  let sig=[...val.slice(0,pos)].filter(isSig).length,core=numCore(val);
+  // deleting only a separator: remove the neighbouring digit instead so the caret is never stuck
+  if(e&&/^delete/.test(e.inputType||'')&&core===numCore(old)&&val.length<old.length){if(/Backward/.test(e.inputType)&&sig>0){core=core.slice(0,sig-1)+core.slice(sig);sig--}else if(/Forward/.test(e.inputType))core=core.slice(0,sig)+core.slice(sig+1)}
+  const out=groupNum(core);if(out!==val)el.value=out;el._pv=out;
+  if(document.activeElement===el){let p=0,k=0;while(p<out.length&&k<sig){if(isSig(out[p]))k++;p++}try{el.setSelectionRange(p,p)}catch(_){}}}
 function money(n,signed=true){if(n==null||!isFinite(n))return'—';const s=signed?(n>0?'+':n<0?'−':''):(n<0?'−':'');return N(s+nf(Math.abs(n),2))}
 function price(n){if(n==null||!isFinite(n)||n===0)return'—';const a=Math.abs(n);return N(a>=1000?nf(n,2):a>=1?nf(n,2,4):nf(n,2,8))}
 function pct(n,signed=true){if(n==null||!isFinite(n))return'—';const s=signed?(n>0?'+':n<0?'−':''):'';return N(s+nf(Math.abs(n),1,2)+'%')}
@@ -649,21 +666,21 @@ let eqRange='all';
 function rDash(){
   const el=$('v-dash'),A=analyze(S.trades),open=S.trades.filter(x=>x.status!=='closed');
   if(!S.trades.length){el.innerHTML=emptyState();return}
-  const strk=A.streak?`<span class="${A.streak>0?'pos':'neg'}">${N(dig(Math.abs(A.streak)))} ${A.streak>0?t('win'):t('loss')}</span>`:'—';
+  const strk=A.streak?`<span class="${A.streak>0?'pos':'neg'}">${N(int(Math.abs(A.streak)))} ${A.streak>0?t('win'):t('loss')}</span>`:'—';
   const kpi=(l,v,s='',c='')=>`<div class="kpi"><span class="l">${l}</span><span class="v ${c}">${v}</span>${s?`<span class="s">${s}</span>`:''}</div>`;
   const pf=A.pf==null?'—':A.pf===Infinity?'∞':N(nf(A.pf,2));
   el.innerHTML=`<div class="dash">
    <div class="stack">
     <div class="card"><div class="hero"><div><div class="lbl">${t('balance')} (${esc(st().currency)})</div><div class="bal">${money(A.bal,false)}</div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill ${cls(A.net)}">${money(A.net)} · ${pct(A.netPct)}</span><span class="pill">${t('openTrades')}: ${N(dig(open.length))}</span></div></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill ${cls(A.net)}">${money(A.net)} · ${pct(A.netPct)}</span><span class="pill">${t('openTrades')}: ${N(int(open.length))}</span></div></div></div>
     <div class="card"><h2>${t('equity')}<span class="seg" role="group" aria-label="${t('equity')}">${['all','d90','d30'].map(r=>`<button data-act="eq" data-v="${r}" aria-pressed="${eqRange===r}">${t(r)}</button>`).join('')}</span></h2><div class="chart" id="eqChart"></div></div>
     <div class="grid kpis">
-      ${kpi(t('winRate'),pct(A.winRate,false),`${N(dig(A.wins))} ${t('wins')} · ${N(dig(A.losses))} ${t('losses')}`)}
+      ${kpi(t('winRate'),pct(A.winRate,false),`${N(int(A.wins))} ${t('wins')} · ${N(int(A.losses))} ${t('losses')}`)}
       ${kpi(t('profitFactor'),pf,A.gl?`${money(A.gw,false)} / ${money(A.gl,false)}`:'',A.pf!=null?(A.pf>=1?'pos':'neg'):'')}
       ${kpi(t('avgR'),rfmt(A.avgR),'',cls(A.avgR))}
       ${kpi(t('expectancy'),money(A.exp),t('perTrade'),cls(A.exp))}
       ${kpi(t('maxDD'),N('−'+nf(A.ddp,1,2)+'%'),money(-A.dd),A.dd>0?'neg':'')}
-      ${kpi(t('streak'),strk,`${t('bestStreak')}: ${N(dig(A.maxW))}${t('wins')} / ${N(dig(A.maxL))}${t('losses')}`)}
+      ${kpi(t('streak'),strk,`${t('bestStreak')}: ${N(int(A.maxW))}${t('wins')} / ${N(int(A.maxL))}${t('losses')}`)}
       ${kpi(t('bestTrade'),A.best?money(A.best.c.pnl):'—',A.best?esc(A.best.x.sym):'','pos')}
       ${kpi(t('worstTrade'),A.worst?money(A.worst.c.pnl):'—',A.worst?esc(A.worst.x.sym):'',A.worst&&A.worst.c.pnl<0?'neg':'')}
     </div>
@@ -682,14 +699,14 @@ function drawEquity(el,A){
   if(pts.length<2)pts.push({t:Date.now(),y:pts[0].y});
   const t0=pts[0].t,t1=Math.max(pts[pts.length-1].t,t0+1);let lo=Math.min(...pts.map(p=>p.y)),hi=Math.max(...pts.map(p=>p.y));if(hi===lo){hi+=1;lo-=1}const padY=(hi-lo)*.1;lo-=padY;hi+=padY;
   const X=v=>pl+(v-t0)/(t1-t0)*(W-pl-pr),Y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb);
-  const up=pts[pts.length-1].y>=pts[0].y,col=up?'var(--pos)':'var(--neg)';
+  const up=pts[pts.length-1].y>=pts[0].y,oc=document.documentElement.classList.contains('ocean'),col=oc?'var(--eq)':up?'var(--pos)':'var(--neg)';
   const line=pts.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+' '+Y(p.y).toFixed(1)).join(' ');
   const area=line+` L${X(t1).toFixed(1)} ${H-pb} L${X(t0).toFixed(1)} ${H-pb}Z`;
-  const by=Y(A.start);const grid=[hi-padY,(hi+lo)/2,lo+padY].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--border)" stroke-dasharray="3 4"/><text class="axis" x="${W-pr-2}" y="${Y(v)-4}" text-anchor="end">${dig(nf(v,0))}</text>`).join('');
+  const by=Y(A.start);const grid=[hi-padY,(hi+lo)/2,lo+padY].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--border)" stroke-dasharray="3 4"/><text class="axis" x="${W-pr-2}" y="${Y(v)-4}" text-anchor="end">${nf(v,0)}</text>`).join('');
   const dl=d=>fdate(new Date(d),{month:'short',day:'numeric'});
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" tabindex="0" aria-label="${t('equity')}: ${esc(nf(pts[0].y,2))} → ${esc(nf(pts[pts.length-1].y,2))}. ${t('chartKeys')}">
-   <defs><linearGradient id="eqg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:${col};stop-opacity:.22"/><stop offset="1" style="stop-color:${col};stop-opacity:0"/></linearGradient></defs>
-   ${grid}${by>pt&&by<H-pb?`<line x1="${pl}" x2="${W-pr}" y1="${by}" y2="${by}" stroke="var(--sec)" stroke-opacity=".7" stroke-width="1"/>`:''}
+   <defs><linearGradient id="eqg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:${col};stop-opacity:${oc?.2:.22}"/><stop offset="1" style="stop-color:${col};stop-opacity:${oc?.03:0}"/></linearGradient></defs>
+   ${grid}${by>pt&&by<H-pb?`<line x1="${pl}" x2="${W-pr}" y1="${by}" y2="${by}" stroke="${oc?'var(--muted)':'var(--sec)'}" stroke-opacity="${oc?.45:.7}" stroke-width="1"/>`:''}
    <path d="${area}" fill="url(#eqg)"/><path d="${line}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
    <text class="axis" x="${pl}" y="${H-6}">${dl(t0)}</text><text class="axis" x="${W-pr}" y="${H-6}" text-anchor="end">${dl(t1)}</text>
    <line id="eqx" y1="${pt}" y2="${H-pb}" stroke="var(--muted)" stroke-dasharray="2 3" visibility="hidden"/><circle id="eqd" r="4.5" fill="${col}" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
@@ -741,7 +758,7 @@ function rTrades(){
 }
 function rList(){const box=$('tlist');if(!box)return;const L=filtered(),A=analyze(L);
   if(!L.length){box.innerHTML=`<div class="card empty" style="margin-top:12px"><p>${t('noMatch')}</p></div>`;return}
-  let html=`<div class="sumbar"><span class="pill">${N(dig(L.length))} ${t('trades')}</span><span class="pill ${cls(A.net)}">${money(A.net)}</span><span class="pill">${t('winRate')} ${pct(A.winRate,false)}</span><span class="pill">${t('avgR')} ${rfmt(A.avgR)}</span></div>`;
+  let html=`<div class="sumbar"><span class="pill">${N(int(L.length))} ${t('trades')}</span><span class="pill ${cls(A.net)}">${money(A.net)}</span><span class="pill">${t('winRate')} ${pct(A.winRate,false)}</span><span class="pill">${t('avgR')} ${rfmt(A.avgR)}</span></div>`;
   let last='';for(const x of L){const d=new Date(x.open||0),k=dayKey(d);if(k!==last){html+=`<div class="day-h">${fDay(d)}</div>`;last=k}html+=tradeRow(x)}
   box.innerHTML=html}
 
@@ -766,12 +783,12 @@ function rCal(){
   let cells=order.map(i=>`<div class="wd" aria-hidden="true">${t('wdShort')[i]}</div>`).join('')+'<div class="d x"></div>'.repeat(lead);
   for(const d of days){const k=dayKey(d),v=dp[k],dn=fa?jParts(d).d:d.getDate();
     let style='';if(v){const a=Math.round(14+Math.min(1,Math.abs(v.p)/mx)*30);style=`background:color-mix(in srgb,var(${v.p>=0?'--heat-pos':'--heat-neg'}) ${a}%,var(--surface2))`}
-    const lab=`${fDay(d)}${v?': '+(v.p>=0?'+':'−')+nf(Math.abs(v.p),2)+' USDT, '+v.n+' '+t('trades'):''}`;
+    const lab=`${fDay(d)}${v?': '+(v.p>=0?'+':'−')+nf(Math.abs(v.p),2)+' USDT, '+int(v.n)+' '+t('trades'):''}`;
     cells+=`<button class="d${v?' has':''}${k===today?' today':''}${calSel===k?' sel':''}" ${v?`data-act="calDay" data-k="${k}"`:'tabindex="-1"'} aria-label="${esc(lab)}" style="${style}"><span class="dn" ${v?'style="color:var(--text)"':''}>${dig(dn)}</span>${v?`<span class="dp" style="color:var(--text)">${N(compact(v.p))}</span>`:''}</button>`}
   let side='';if(calSel&&dp[calSel]){const ids=dp[calSel].ids;side=`<div class="card"><h2>${t('dayTrades')}<small>${fDay(new Date(calSel+'T12:00'))}</small></h2>${S.trades.filter(x=>ids.includes(x.id)).map(tradeRow).join('')}</div>`}
   else side=`<div class="card empty"><p>${t('pickDay')}</p></div>`;
   el.innerHTML=`<div class="cal-g stack"><div class="card"><div class="cal-head"><button class="icon-btn" data-act="calMove" data-v="-1" aria-label="${t('prev')}">${ico(fa?'right':'left')}</button><div class="t">${title}</div><button class="icon-btn" data-act="calMove" data-v="1" aria-label="${t('next')}">${ico(fa?'left':'right')}</button></div>
-   <div class="sumbar"><span class="pill ${cls(tot)}">${t('monthTotal')}: ${money(tot)}</span><span class="pill">${t('tradingDays')}: ${N(dig(vals.length))}</span><span class="pill pos">${t('greenDays')}: ${N(dig(gd))}</span><span class="pill neg">${t('redDays')}: ${N(dig(rd))}</span></div>
+   <div class="sumbar"><span class="pill ${cls(tot)}">${t('monthTotal')}: ${money(tot)}</span><span class="pill">${t('tradingDays')}: ${N(int(vals.length))}</span><span class="pill pos">${t('greenDays')}: ${N(int(gd))}</span><span class="pill neg">${t('redDays')}: ${N(int(rd))}</span></div>
    <div class="cal">${cells}</div>
    <div class="legend">${t('less')}<i style="background:color-mix(in srgb,var(--heat-neg) 44%,var(--surface2))"></i><i style="background:color-mix(in srgb,var(--heat-neg) 22%,var(--surface2))"></i><i style="background:var(--surface2)"></i><i style="background:color-mix(in srgb,var(--heat-pos) 22%,var(--surface2))"></i><i style="background:color-mix(in srgb,var(--heat-pos) 44%,var(--surface2))"></i>${t('more')}</div></div>${side}</div>`;
 }
@@ -780,7 +797,7 @@ function rCal(){
 function groupStats(key,labelFn,orderFn){const m=new Map();for(const x of S.trades){if(x.status!=='closed')continue;const c=calc(x);if(c.pnl==null)continue;const k=key(x);if(k==null||k==='')continue;
   const g=m.get(k)||{k,n:0,w:0,p:0,r:0,nr:0};g.n++;if(c.pnl>0)g.w++;g.p+=c.pnl;if(c.R!=null){g.r+=c.R;g.nr++}m.set(k,g)}
   let arr=[...m.values()];arr=orderFn?arr.sort(orderFn):arr.sort((a,b)=>b.p-a.p);const mx=Math.max(1e-9,...arr.map(g=>Math.abs(g.p)));
-  return arr.map(g=>{const w=Math.abs(g.p)/mx*50;return`<div class="srow"><div class="nm">${labelFn?labelFn(g.k):esc(g.k)}<small>${N(dig(g.n))} ${t('trades')} · <span style="white-space:nowrap">${t('winShort')} ${N(nf(g.w/g.n*100,0)+'%')}</span></small></div>
+  return arr.map(g=>{const w=Math.abs(g.p)/mx*50;return`<div class="srow"><div class="nm">${labelFn?labelFn(g.k):esc(g.k)}<small>${N(int(g.n))} ${t('trades')} · <span style="white-space:nowrap">${t('winShort')} ${N(nf(g.w/g.n*100,0)+'%')}</span></small></div>
    <div class="bar" aria-hidden="true"><i class="${g.p>=0?'p':'n'}" style="width:${w.toFixed(1)}%"></i></div>
    <div class="vv ${cls(g.p)}">${money(g.p)}<small>${g.nr?rfmt(g.r/g.nr):'—'}</small></div></div>`}).join('')||`<p class="mut">—</p>`}
 function rStats(){
@@ -789,7 +806,7 @@ function rStats(){
   const wkStart=st().lang==='fa'?6:1,emoL=k=>{const e=[...EMO_B,...EMO_A].find(a=>a[0]===k);return(e?e[1]+' ':'')+esc(t('emo')[k]||k)};
   const card=(h,body)=>`<div class="card"><h2>${h}</h2>${body}</div>`;
   el.innerHTML=`<div class="grid kpis" style="margin-bottom:var(--gap)">
-     <div class="kpi"><span class="l">${t('totalTrades')}</span><span class="v">${N(dig(A.n))}</span></div>
+     <div class="kpi"><span class="l">${t('totalTrades')}</span><span class="v">${N(int(A.n))}</span></div>
      <div class="kpi"><span class="l">${t('winRate')}</span><span class="v">${pct(A.winRate,false)}</span></div>
      <div class="kpi"><span class="l">${t('avgR')}</span><span class="v ${cls(A.avgR)}">${rfmt(A.avgR)}</span></div>
      <div class="kpi"><span class="l">${t('netPnl')}</span><span class="v ${cls(A.net)}">${money(A.net)}</span></div></div>
@@ -821,7 +838,7 @@ function rSettings(){
      ${s.theme==='ocean'?`<div class="set-row"><div class="l">${t('accent')}<small>${t('oceanNote')}</small></div></div>`:`<div class="set-row"><div class="l">${t('accent')}</div><div class="chips">${sw('amber','#f5a524')}${sw('blue','#4c8dff')}${sw('teal','#2dd4bf')}</div></div>`}
     </div>
     <div class="card"><h2>${t('sAccount')}</h2>
-     <div class="set-row"><label class="l" for="sBal">${t('startBal')}<small>${t('startBalSub')}</small></label><div class="inp-g" style="width:180px"><input class="inp ltr" id="sBal" inputmode="decimal" value="${esc(s.startBal)}"></div></div>
+     <div class="set-row"><label class="l" for="sBal">${t('startBal')}<small>${t('startBalSub')}</small></label><div class="inp-g" style="width:180px"><input class="inp ltr numf" id="sBal" inputmode="decimal" autocomplete="off" value="${esc(fmtIn(s.startBal))}"></div></div>
      <div class="set-row"><div class="l">${t('currency')}</div><span class="pill acc" style="font-family:var(--f-en)">USDT</span></div>
      <div style="padding-top:12px"><div class="l" style="font-weight:600;margin-bottom:10px">${t('manageSetups')}</div>
       <div class="chips" id="setupChips">${S.setups.map((x,i)=>`<span class="chip">${esc(x)}<button class="x" data-act="rmSetup" data-i="${i}" aria-label="${t('delete')} ${esc(x)}">${ico('x')}</button></span>`).join('')}</div>
@@ -829,7 +846,7 @@ function rSettings(){
     </div>
    </div>
    <div class="stack">
-    <div class="card"><h2>${t('sData')}<small>${N(dig(S.trades.length))} ${t('trades')}</small></h2>
+    <div class="card"><h2>${t('sData')}<small>${N(int(S.trades.length))} ${t('trades')}</small></h2>
      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <button class="btn" data-act="exportJson">${ico('down')}${t('exportJson')}</button>
       <button class="btn" data-act="importJson">${ico('up')}${t('importJson')}</button>
@@ -861,7 +878,7 @@ function closeForm(){$('sheet').classList.remove('on');$('ovl').classList.remove
 function buildForm(){const x=FT;
   const seg=(name,opts)=>`<div class="seg full" role="group" data-seg="${name}">${opts.map(([v,l,c])=>`<button type="button" class="${c||''}" data-v="${v}" aria-pressed="${String(x[name])===String(v)}">${l}</button>`).join('')}</div>`;
   const rq=`<span class="req" aria-hidden="true">*</span><span class="sr"> (${t('required')})</span>`;
-  const inp=(name,label,ph='',req=false)=>`<div class="f"><label for="f_${name}">${label}${req?rq:''}</label><input class="inp ltr" id="f_${name}" name="${name}" inputmode="decimal" autocomplete="off" placeholder="${ph}" value="${esc(x[name])}" aria-describedby="e_${name}"><span class="err" id="e_${name}"></span></div>`;
+  const inp=(name,label,ph='',req=false)=>`<div class="f"><label for="f_${name}">${label}${req?rq:''}</label><input class="inp ltr numf" id="f_${name}" name="${name}" inputmode="decimal" autocomplete="off" placeholder="${ph}" value="${esc(fmtIn(x[name]))}" aria-describedby="e_${name}"><span class="err" id="e_${name}"></span></div>`;
   const emo=(name,list)=>`<div class="chips" role="group" data-chips="${name}">${list.map(([k,e])=>`<button type="button" class="chip" data-v="${k}" aria-pressed="${x[name]===k}"><span aria-hidden="true">${e}</span> ${esc(t('emo')[k])}</button>`).join('')}</div>`;
   $('sheetB').innerHTML=`
   <div class="fsec"><h3>${t('secBasics')}</h3><div class="fg">
@@ -870,13 +887,13 @@ function buildForm(){const x=FT;
       <div class="sugg">${recentSyms().map(s=>`<button type="button" data-act="pickSym" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div><span class="err" id="e_sym"></span></div>
     <div class="f"><span class="lb">${t('market')}</span>${seg('mkt',[['spot',t('spot')],['fut',t('futures')]])}</div>
     <div class="f"><span class="lb">${t('side')}</span>${seg('side',[['long',t('long'),'long'],['short',t('short'),'short']])}</div>
-    <div class="f" id="levBox" ${x.mkt==='spot'?'hidden':''}><label for="f_lev">${t('leverage')}</label><input class="inp ltr" id="f_lev" name="lev" inputmode="decimal" value="${esc(x.lev)}" placeholder="10"></div>
+    <div class="f" id="levBox" ${x.mkt==='spot'?'hidden':''}><label for="f_lev">${t('leverage')}</label><input class="inp ltr numf" id="f_lev" name="lev" inputmode="decimal" autocomplete="off" value="${esc(fmtIn(x.lev))}" placeholder="10"></div>
     <div class="f"><span class="lb">${t('status')}</span>${seg('status',[['closed',t('closed')],['open',t('open')]])}</div>
   </div></div>
   <div class="fsec"><h3>${t('secPrices')}</h3><div class="fg fg2">
     ${inp('entry',t('entry'),'0.00',true)}<div id="exitWrap" ${x.status==='open'?'hidden':''}>${inp('exit',t('exit'),'0.00',true)}</div>
     ${inp('sl',t('sl'),'0.00')}${inp('tp',t('tp'),'0.00')}
-    <div class="f"><label for="f_size">${t('size')}${rq}</label><input class="inp ltr" id="f_size" aria-describedby="e_size" name="size" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${esc(x.size)}"><div class="seg full" role="group" data-seg="sizeMode" style="margin-top:4px">${[['usdt',t('sizeUsdt')],['qty',t('sizeQty')]].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${x.sizeMode===v}">${l}</button>`).join('')}</div><span class="err" id="e_size"></span></div>
+    <div class="f"><label for="f_size">${t('size')}${rq}</label><input class="inp ltr numf" id="f_size" aria-describedby="e_size" name="size" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${esc(fmtIn(x.size))}"><div class="seg full" role="group" data-seg="sizeMode" style="margin-top:4px">${[['usdt',t('sizeUsdt')],['qty',t('sizeQty')]].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${x.sizeMode===v}">${l}</button>`).join('')}</div><span class="err" id="e_size"></span></div>
     ${inp('fees',t('fees'),'0.00')}
   </div></div>
   <div class="fsec"><h3>${t('secCalc')}</h3><div class="calc" id="calcBox"></div></div>
@@ -1031,7 +1048,9 @@ $('sheet').addEventListener('submit',submitForm);
 $('sheet').addEventListener('input',e=>{if(e.target.matches('.inp')){updCalc();if(e.target.type==='datetime-local')updDateHints();if(e.target.id&&$('e_'+e.target.id.slice(2)))$('e_'+e.target.id.slice(2)).textContent=''}});
 $('fileShot').addEventListener('change',async e=>{for(const f of e.target.files){try{FShots.push({k:null,v:await compressImage(f)})}catch(err){console.error(err)}}e.target.value='';rShots()});
 $('fileImport').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)importJson(f)});
+document.addEventListener('compositionend',e=>{if(e.target.classList&&e.target.classList.contains('numf'))liveNum(e.target)});
 document.addEventListener('input',e=>{
+  if(e.target.classList&&e.target.classList.contains('numf'))liveNum(e.target,e);
   if(e.target.id==='fq'){F.q=e.target.value;rList()}
   if(e.target.id==='sBal'){const n=parseNum(e.target.value);if(isFinite(n)&&n>=0){st().startBal=n;save()}}
 });
