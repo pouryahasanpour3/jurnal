@@ -21,17 +21,19 @@
 try{var _s=JSON.parse(localStorage.getItem('tj-state-v1')||'null'),_o=(_s&&_s.settings)||{},_h=document.documentElement;
 if(_o.lang==='en'){_h.lang='en';_h.dir='ltr'}
 if(_o.theme==='light')_h.classList.add('light');
-if(_o.accent&&_o.accent!=='amber')_h.classList.add('acc-'+_o.accent);
+if(_o.theme==='ocean')_h.classList.add('ocean');
+else if(_o.accent&&_o.accent!=='amber')_h.classList.add('acc-'+_o.accent);
 if(localStorage.getItem('tj-lock'))_h.classList.add('lkd');
-document.getElementById('tc').content=_o.theme==='light'?'#f4f6fa':'#0b0e14';}catch(e){}
+document.getElementById('tc').content=_o.theme==='light'?'#f4f6fa':_o.theme==='ocean'?'#0b1026':'#0b0e14';}catch(e){}
 </script>
 <style>
 :root{
   --bg:#0b0e14;--surface:#121722;--surface2:#1a2130;--surface3:#222b3c;--border:#262f40;
-  --text:#e7ebf3;--muted:#949eb0;--faint:#6b7588;
+  --text:#e7ebf3;--muted:#949eb0;--faint:#838da0;
   --pos:#22c55e;--pos-bg:rgba(34,197,94,.13);--neg:#f2555a;--neg-bg:rgba(242,85,90,.13);
   --acc:#f5a524;--acc-ink:#f5a524;--on-acc:#14110a;--acc-bg:rgba(245,165,36,.14);
   --warn:#f5a524;--shadow:0 1px 2px rgba(0,0,0,.35);
+  --hl:var(--acc);--sec:var(--muted);--sec-bg:var(--surface2);--seg-on:var(--surface);--seg-on-ink:var(--text);--sel:var(--text);--heat-pos:var(--pos);--heat-neg:var(--neg);
   --r:14px;--r-sm:10px;--gap:16px;
   --f-fa:Vazirmatn,Tahoma,"Segoe UI",sans-serif;--f-en:Inter,"Segoe UI",Roboto,system-ui,sans-serif;
   --tab-h:64px;--side-w:248px;
@@ -39,11 +41,24 @@ document.getElementById('tc').content=_o.theme==='light'?'#f4f6fa':'#0b0e14';}ca
 }
 html.light{
   --bg:#f4f6fa;--surface:#ffffff;--surface2:#eef1f6;--surface3:#e3e8f0;--border:#dce2eb;
-  --text:#0f172a;--muted:#556074;--faint:#7b8698;
-  --pos:#15803d;--pos-bg:rgba(21,128,61,.10);--neg:#d42828;--neg-bg:rgba(212,40,40,.09);
+  --text:#0f172a;--muted:#556074;--faint:#5f6a7e;
+  --pos:#137333;--pos-bg:rgba(19,115,51,.10);--neg:#c62020;--neg-bg:rgba(198,32,32,.09);--seg-on:#ffffff;
   --acc:#f59e0b;--acc-ink:#a15c07;--on-acc:#14110a;--acc-bg:rgba(245,158,11,.14);
   --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);
   color-scheme:light;
+}
+/* Ocean theme (v1.1): deep blue-indigo surfaces, gray text, Tiffany primary, purple secondary, sparing yellow highlights.
+   PnL green/red tuned for AA on every surface and kept distinct from the Tiffany primary. */
+html.ocean{
+  --bg:#0b1026;--surface:#121a36;--surface2:#19234a;--surface3:#222e5c;--border:#2c3a6b;
+  --text:#e8edf7;--muted:#a6b0c6;--faint:#8e98b2;
+  --pos:#4ade80;--pos-bg:rgba(74,222,128,.13);--neg:#ff7a8a;--neg-bg:rgba(255,122,138,.13);
+  --acc:#0abab5;--acc-ink:#2ed3cd;--on-acc:#04201f;--acc-bg:rgba(10,186,181,.15);
+  --sec:#a99bff;--sec-bg:rgba(139,124,246,.18);--hl:#f7c948;--warn:#f7c948;
+  --seg-on:rgba(139,124,246,.24);--seg-on-ink:#ffffff;--sel:#a99bff;--heat-neg:#ff3b5c;
+  --eq:#a99bff; /* v1.1.1: equity curve is purple in Ocean (PnL colours stay green/red) */
+  --shadow:0 1px 2px rgba(3,6,20,.45);
+  color-scheme:dark;
 }
 html.acc-blue{--acc:#4c8dff;--acc-ink:#6ea2ff;--on-acc:#06122a;--acc-bg:rgba(76,141,255,.15)}
 html.light.acc-blue{--acc:#2563eb;--acc-ink:#1d4ed8;--on-acc:#ffffff;--acc-bg:rgba(37,99,235,.10)}
@@ -61,6 +76,9 @@ a{color:var(--acc-ink)}
 svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .num,bdi.n{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:8px}
+.skip{position:fixed;top:8px;inset-inline-start:8px;z-index:200;padding:10px 14px;border-radius:10px;background:var(--acc);color:var(--on-acc);font-weight:700;text-decoration:none;transform:translateY(-200%)}
+.skip:focus{transform:none}
+.req{color:var(--neg);margin-inline-start:2px}
 .sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .pos{color:var(--pos)}.neg{color:var(--neg)}.mut{color:var(--muted)}
 html.lkd #app{visibility:hidden}
@@ -84,7 +102,9 @@ main{padding:16px 16px calc(var(--tab-h) + 28px + env(safe-area-inset-bottom));m
 .tabs{position:fixed;inset-inline:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;
   height:calc(var(--tab-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--surface);border-top:1px solid var(--border)}
 .tab{min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--muted);transition:color .18s}
+.tab{position:relative}
 .tab[aria-current=page]{color:var(--acc-ink)}
+.tab[aria-current=page]:before{content:"";position:absolute;top:4px;left:50%;width:20px;height:3px;margin-left:-10px;border-radius:3px;background:var(--hl)}
 .tab-add{justify-self:center;width:52px;height:52px;border-radius:16px;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s}
 .tab-add:active{transform:scale(.95)}
 .tab-add svg.i{width:26px;height:26px;stroke-width:2.4}
@@ -108,8 +128,7 @@ main{padding:16px 16px calc(var(--tab-h) + 28px + env(safe-area-inset-bottom));m
 .pill.acc{background:var(--acc-bg);color:var(--acc-ink)}
 .seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:2px}
 .seg button{min-height:38px;padding:0 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--muted);transition:background .18s,color .18s}
-.seg button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
-html.light .seg button[aria-pressed=true]{background:#fff}
+.seg button[aria-pressed=true]{background:var(--seg-on);color:var(--seg-on-ink);box-shadow:var(--shadow)}
 .seg.full{display:flex}.seg.full button{flex:1}
 .seg button.long[aria-pressed=true]{background:var(--pos-bg);color:var(--pos)}
 .seg button.short[aria-pressed=true]{background:var(--neg-bg);color:var(--neg)}
@@ -129,11 +148,12 @@ html.light .seg button[aria-pressed=true]{background:#fff}
 
 /* ---------- Chart ---------- */
 .chart{position:relative;height:220px;direction:ltr;touch-action:pan-y}
-.chart svg{display:block;width:100%;height:100%}
+.chart svg{display:block;width:100%;height:100%;border-radius:8px}
+.chart svg:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .chart .tip{position:absolute;top:6px;pointer-events:none;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:12px;white-space:nowrap;opacity:0;transition:opacity .12s;transform:translateX(-50%)}
 .chart .tip b{display:block;font-size:13.5px}
 .chart .tip.on{opacity:1}
-.axis{font-size:11px;fill:var(--faint);font-family:var(--f-en)}
+.axis{font-size:11px;fill:var(--muted);font-family:var(--f-en)}
 html[lang=fa] .axis{font-family:var(--f-fa)}
 
 /* ---------- Trades list ---------- */
@@ -160,6 +180,7 @@ html[lang=fa] .axis{font-family:var(--f-fa)}
 .trade .del{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;color:var(--muted);flex:none}
 .trade .del:hover{background:var(--neg-bg);color:var(--neg)}
 .tag{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--surface2);color:var(--muted);font-family:var(--f-en)}
+.tag.sec{background:var(--sec-bg);color:var(--sec)}
 .tag.long{background:var(--pos-bg);color:var(--pos)}.tag.short{background:var(--neg-bg);color:var(--neg)}
 html[lang=fa] .tag{font-family:var(--f-fa)}
 
@@ -172,23 +193,23 @@ html[lang=fa] .tag{font-family:var(--f-fa)}
 .cal .d .dn{font-weight:600;color:var(--muted);font-size:12px}
 .cal .d .dp{font-size:10.5px;font-weight:700;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cal .d.has{cursor:pointer}
-.cal .d.today{border-color:var(--acc)}
-.cal .d.sel{outline:2px solid var(--text);outline-offset:1px}
+.cal .d.today{border-color:var(--hl);border-width:2px}
+.cal .d.sel{outline:2px solid var(--sel);outline-offset:1px}
 .cal .d.x{background:transparent}
 .legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:12px;flex-wrap:wrap}
 .legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
 
 /* ---------- Stats bars ---------- */
-.srow{display:grid;grid-template-columns:minmax(70px,1.1fr) 2fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.srow{display:grid;grid-template-columns:minmax(96px,1.3fr) minmax(60px,1.6fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
 .srow:last-child{border-bottom:0}
 .srow .nm{font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.srow .nm small{display:block;color:var(--muted);font-weight:500;font-size:11.5px}
+.srow .nm small{display:block;color:var(--muted);font-weight:500;font-size:12px;white-space:normal;line-height:1.4}
 .bar{height:10px;background:var(--surface2);border-radius:6px;position:relative;overflow:hidden;direction:ltr}
 .bar i{position:absolute;top:0;bottom:0;border-radius:6px}
 .bar i.p{left:50%;background:var(--pos)}.bar i.n{right:50%;background:var(--neg)}
 .bar:after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--border)}
 .srow .vv{text-align:end;font-weight:700;font-size:13.5px;min-width:76px}
-.srow .vv small{display:block;color:var(--muted);font-weight:500;font-size:11.5px}
+.srow .vv small{display:block;color:var(--muted);font-weight:500;font-size:12px}
 
 /* ---------- Settings ---------- */
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -204,6 +225,18 @@ html[lang=fa] .tag{font-family:var(--f-fa)}
 .swatch{width:44px;height:44px;border-radius:12px;border:2px solid transparent;display:grid;place-items:center}
 .swatch[aria-pressed=true]{border-color:var(--text)}
 .swatch i{width:24px;height:24px;border-radius:50%;display:block}
+.themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%;margin-top:10px}
+.tcard{display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:12px;border:2px solid var(--border);background:var(--surface2);text-align:start;min-height:44px;transition:border-color .15s}
+.tcard:hover{border-color:var(--muted)}
+.tcard[aria-pressed=true]{border-color:var(--acc)}
+.tcard .pv{height:62px;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px;border:1px solid rgba(127,127,127,.25)}
+.tcard .pv i{display:block;border-radius:4px;height:8px}
+.tcard .pv .row{display:flex;gap:5px;align-items:center}
+.tcard .pv .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.tcard .nm{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13.5px;font-weight:700;padding:0 2px}
+.tcard .nm svg.i{width:16px;height:16px;color:var(--acc-ink);visibility:hidden}
+.tcard[aria-pressed=true] .nm svg.i{visibility:visible}
+.set-row.col{flex-direction:column;align-items:stretch}
 .ver{text-align:center;color:var(--faint);font-size:12px;margin-top:16px}
 
 /* ---------- Form sheet ---------- */
@@ -229,6 +262,7 @@ html[lang=fa] .tag{font-family:var(--f-fa)}
 .inp:focus{border-color:var(--acc);outline:none}
 .inp.ltr{direction:ltr;text-align:left;font-family:var(--f-en)}
 html[lang=fa] .inp.ltr::placeholder{font-family:var(--f-fa)}
+html[lang=fa] .inp.numf{font-family:var(--f-fa);font-variant-numeric:tabular-nums} /* v1.1.1: grouped Persian numbers match display font */
 textarea.inp{min-height:96px;padding:10px 12px;resize:vertical;line-height:1.6}
 select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-size:5px 5px;background-repeat:no-repeat;background-position:left 14px center,left 9px center;padding-inline-end:30px}
 html[dir=ltr] select.inp{background-position:right 9px center,right 14px center}
@@ -236,7 +270,7 @@ html[dir=ltr] select.inp{background-position:right 9px center,right 14px center}
 .err{color:var(--neg);font-size:12.5px;min-height:0}
 .inp[aria-invalid=true]{border-color:var(--neg)}
 .hint{font-size:12px;color:var(--faint)}
-.sugg{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.sugg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .sugg button{min-height:34px;padding:0 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:12.5px;font-weight:600;font-family:var(--f-en);color:var(--muted)}
 .sugg button:hover{color:var(--text)}
 .calc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -247,7 +281,7 @@ html[dir=ltr] select.inp{background-position:right 9px center,right 14px center}
 .check input{width:22px;height:22px;accent-color:var(--acc)}
 .stars{display:flex;gap:4px}
 .stars button{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;color:var(--faint)}
-.stars button.on{color:var(--acc)}
+.stars button.on{color:var(--hl)}
 .stars button.on svg.i{fill:currentColor}
 .stars svg.i{width:26px;height:26px}
 .shots{display:flex;gap:10px;flex-wrap:wrap}
@@ -303,7 +337,9 @@ html.lkd #lock{display:flex}
   .side .brand small{display:block;font-weight:500;color:var(--muted);font-size:12px}
   .side .nav{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;color:var(--muted);font-weight:600;transition:background .15s,color .15s}
   .side .nav:hover{background:var(--surface2);color:var(--text)}
+  .side .nav{position:relative}
   .side .nav[aria-current=page]{background:var(--acc-bg);color:var(--text)}
+  .side .nav[aria-current=page]:before{content:"";position:absolute;inset-inline-start:0;top:12px;bottom:12px;width:3px;border-radius:3px;background:var(--hl)}
   .side .nav[aria-current=page] svg.i{color:var(--acc-ink)}
   .side .btn{margin-top:14px}
   .side .foot{margin-top:auto;font-size:12px;color:var(--faint);padding:0 12px}
@@ -329,10 +365,18 @@ html.lkd #lock{display:flex}
   .filters.on{grid-template-columns:repeat(6,minmax(0,1fr))}
   .trades-l{max-width:none}
 }
+/* Touch devices: every control ≥44px tall (skill rule touch-target-size); desktop keeps compact controls. */
+@media (pointer:coarse){
+  .seg button,.btn.sm,.chip,.sugg button{min-height:44px}
+  .check{min-width:44px;justify-content:center}
+  .seg button{min-width:44px}
+  .chip .x{position:relative}.chip .x:after{content:"";position:absolute;inset:-10px}
+}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
+<a class="skip" href="#/" data-i="skip">پرش به محتوا</a>
 <div id="lock" role="dialog" aria-modal="true" aria-labelledby="lockT">
   <img src="icons/icon-192.png" alt="">
   <div class="lt" id="lockT">رمز را وارد کنید</div>
@@ -349,7 +393,7 @@ html.lkd #lock{display:flex}
     <button class="nav" data-go="cal"><svg class="i"><use href="#i-cal"/></svg><span data-i="nav.cal">تقویم</span></button>
     <button class="nav" data-go="stats"><svg class="i"><use href="#i-bars"/></svg><span data-i="nav.stats">آمار</span></button>
     <button class="btn pri" data-act="add"><svg class="i"><use href="#i-plus"/></svg><span data-i="newTrade">معامله جدید</span></button>
-    <div class="foot">v1.0.0</div>
+    <div class="foot">v1.1.1</div>
   </aside>
 
   <header class="top">
@@ -359,7 +403,7 @@ html.lkd #lock{display:flex}
     <button class="icon-btn" id="gear" data-go="settings" aria-label="تنظیمات" data-i-aria="nav.settings"><svg class="i"><use href="#i-gear"/></svg></button>
   </header>
 
-  <main id="main">
+  <main id="main" tabindex="-1">
     <section class="view" id="v-dash" aria-labelledby="viewTitle"></section>
     <section class="view" id="v-trades"></section>
     <section class="view" id="v-cal"></section>
@@ -427,12 +471,12 @@ html.lkd #lock{display:flex}
 <script>
 'use strict';
 /* ============================================================
-   TradeJournal v1.0.0 — single-file PWA, no build step.
+   TradeJournal v1.1.1 — single-file PWA, no build step.
    State: one JSON object S in localStorage (key tj-state-v1),
    so a Supabase sync layer (like budget/sync.js) can be added later.
    Screenshots: IndexedDB tj-db / store "shots" (key -> dataURL).
    ============================================================ */
-const VER='1.0.0', SK='tj-state-v1', LK='tj-lock';
+const VER='1.1.1', SK='tj-state-v1', LK='tj-lock';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[<>&"']/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[m]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -454,7 +498,7 @@ entry:'قیمت ورود',exit:'قیمت خروج',size:'حجم پوزیشن',si
 openAt:'زمان باز شدن',closeAt:'زمان بسته شدن',status:'وضعیت',timeframe:'تایم‌فریم',
 emoBefore:'حس قبل از ورود',emoAfter:'حس بعد از خروج',ruleFollowed:'طبق قوانینم معامله کردم',rating:'امتیاز اجرا',notes:'یادداشت',
 notesPh:'دلیل ورود، چه چیزی خوب بود، چه چیزی را باید بهتر کنم…',shots:'اسکرین‌شات',addShot:'افزودن تصویر',
-secBasics:'اطلاعات پایه',secPrices:'قیمت و حجم',secTime:'زمان',secCalc:'محاسبه خودکار',secStrategy:'استراتژی',secMind:'روانشناسی',secNotes:'یادداشت و تصویر',
+secBasics:'اطلاعات پایه',secPrices:'قیمت و حجم',secTime:'زمان',secCalc:'محاسبه خودکار',secStrategy:'استراتژی و تایم‌فریم',secMind:'روانشناسی',secNotes:'یادداشت و تصویر',
 pnl:'سود/زیان',pnlPct:'درصد',rMult:'R',risk:'ریسک',rrPlanned:'RR برنامه',notional:'ارزش پوزیشن',
 addSetup:'افزودن',newSetupPh:'نام استراتژی جدید',
 errSym:'نماد را وارد کن',errEntry:'قیمت ورود معتبر نیست',errSize:'حجم معتبر نیست',errExit:'برای معامله‌ی بسته، قیمت خروج لازم است',errClose:'زمان بسته شدن نمی‌تواند قبل از باز شدن باشد',
@@ -473,7 +517,7 @@ demoQ:'داده‌ی نمونه بارگذاری شود؟',demoP:'۲۴ معام�
 pinLock:'قفل با رمز',pinLockSub:'رمز ۴ رقمی هنگام باز کردن اپ',pinOn:'فعال',pinOff:'غیرفعال',setPin:'تنظیم رمز',removePin:'حذف رمز',
 pinEnter:'رمز را وارد کنید',pinNew:'یک رمز ۴ رقمی انتخاب کن',pinAgain:'رمز را دوباره وارد کن',pinMismatch:'رمزها یکی نبود؛ دوباره',pinWrong:'رمز اشتباه است',pinOffEnter:'برای حذف قفل، رمز فعلی را وارد کن',
 pinSet:'قفل فعال شد',pinRemoved:'قفل برداشته شد',storage:'فضای ذخیره',version:'نسخه',dataNote:'داده‌ها فقط روی همین دستگاه ذخیره می‌شوند.',
-amber:'کهربایی',blue:'آبی',teal:'فیروزه‌ای',demoTag:'نمونه',lev:'x',
+amber:'کهربایی',blue:'آبی',teal:'فیروزه‌ای',ocean:'اقیانوس',oceanNote:'رنگ اصلی پوسته‌ی اقیانوس ثابت است (آبی تیفانی).',skip:'پرش به محتوا',required:'الزامی',chartKeys:'با کلیدهای جهت روی نقاط حرکت کن',winShort:'برد',demoTag:'نمونه',lev:'x',
 weekdays:['یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه','شنبه'],wdShort:['ی','د','س','چ','پ','ج','ش'],
 emo:{calm:'آرام',focused:'متمرکز',confident:'مطمئن',neutral:'خنثی',fomo:'فومو',fear:'ترس',greed:'طمع',revenge:'انتقامی',tired:'خسته',happy:'راضی',regret:'پشیمان',frustrated:'کلافه'}},
 en:{appName:'TradeJournal',appSub:'Crypto trading journal','nav.dash':'Dashboard','nav.trades':'Trades','nav.cal':'Calendar','nav.stats':'Stats','nav.settings':'Settings',
@@ -490,7 +534,7 @@ entry:'Entry price',exit:'Exit price',size:'Position size',sizeUsdt:'USDT',sizeQ
 openAt:'Opened',closeAt:'Closed',status:'Status',timeframe:'Timeframe',
 emoBefore:'Mindset before',emoAfter:'Mindset after',ruleFollowed:'I followed my rules',rating:'Execution rating',notes:'Notes',
 notesPh:'Why you entered, what went well, what to improve…',shots:'Screenshots',addShot:'Add image',
-secBasics:'Basics',secPrices:'Price & size',secTime:'Time',secCalc:'Auto-calculated',secStrategy:'Strategy',secMind:'Psychology',secNotes:'Notes & images',
+secBasics:'Basics',secPrices:'Price & size',secTime:'Time',secCalc:'Auto-calculated',secStrategy:'Strategy & timeframe',secMind:'Psychology',secNotes:'Notes & images',
 pnl:'P&L',pnlPct:'Return',rMult:'R',risk:'Risk',rrPlanned:'Planned RR',notional:'Notional',
 addSetup:'Add',newSetupPh:'New setup name',
 errSym:'Enter a symbol',errEntry:'Enter a valid entry price',errSize:'Enter a valid size',errExit:'A closed trade needs an exit price',errClose:'Close time can’t be before open time',
@@ -509,7 +553,7 @@ demoQ:'Load demo data?',demoP:'Adds 24 sample trades. Remove them later with “
 pinLock:'PIN lock',pinLockSub:'4-digit PIN when opening the app',pinOn:'On',pinOff:'Off',setPin:'Set PIN',removePin:'Remove PIN',
 pinEnter:'Enter PIN',pinNew:'Choose a 4-digit PIN',pinAgain:'Enter it again',pinMismatch:'PINs didn’t match, try again',pinWrong:'Wrong PIN',pinOffEnter:'Enter current PIN to remove lock',
 pinSet:'Lock enabled',pinRemoved:'Lock removed',storage:'Storage',version:'Version',dataNote:'Data is stored only on this device.',
-amber:'Amber',blue:'Blue',teal:'Teal',demoTag:'demo',lev:'x',
+amber:'Amber',blue:'Blue',teal:'Teal',ocean:'Ocean',oceanNote:'Ocean uses its own fixed primary color (Tiffany blue).',skip:'Skip to content',required:'required',chartKeys:'Use arrow keys to move between points',winShort:'win',demoTag:'demo',lev:'x',
 weekdays:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],wdShort:['Su','Mo','Tu','We','Th','Fr','Sa'],
 emo:{calm:'Calm',focused:'Focused',confident:'Confident',neutral:'Neutral',fomo:'FOMO',fear:'Fear',greed:'Greed',revenge:'Revenge',tired:'Tired',happy:'Satisfied',regret:'Regret',frustrated:'Frustrated'}}
 };
@@ -542,6 +586,21 @@ const _nf={};
 function nf(n,min=2,max=min){const k=numLoc()+min+'-'+max;return(_nf[k]||(_nf[k]=new Intl.NumberFormat(numLoc(),{minimumFractionDigits:min,maximumFractionDigits:max}))).format(n)}
 const dig=s=>faDig()?String(s).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]):String(s);
 const N=s=>`<bdi class="n">${s}</bdi>`;
+const int=n=>nf(n,0); // grouped integer (counts etc.)
+/* v1.1.1 live thousands grouping for number inputs. Display: ٬/٫ with Persian digits, ,/. with latin digits. Storage stays a plain Number (parseNum strips both). */
+const toLat=v=>String(v).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+const numCore=v=>{v=toLat(v).replace(/[٫]/g,'.').replace(/[^0-9.]/g,'');const i=v.indexOf('.');return i<0?v:v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'')};
+function groupNum(core){if(core==='')return'';const fa=faDig(),i=core.indexOf('.');let a=i<0?core:core.slice(0,i),b=i<0?null:core.slice(i+1);
+  a=a.replace(/\B(?=(\d{3})+(?!\d))/g,fa?'٬':',');let o=a+(b==null?'':(fa?'٫':'.')+b);return fa?o.replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]):o}
+const numStr=n=>{if(n===''||n==null)return'';const x=Number(n);if(!isFinite(x))return String(n);return x.toLocaleString('en-US',{useGrouping:false,maximumFractionDigits:20})};
+const fmtIn=n=>groupNum(numCore(numStr(n)));
+const isSig=c=>/[0-9۰-۹٠-٩.٫]/.test(c);
+function liveNum(el,e){if(e&&e.isComposing)return;const old=el._pv??el.defaultValue??'',val=el.value;let pos=el.selectionStart==null?val.length:el.selectionStart;
+  let sig=[...val.slice(0,pos)].filter(isSig).length,core=numCore(val);
+  // deleting only a separator: remove the neighbouring digit instead so the caret is never stuck
+  if(e&&/^delete/.test(e.inputType||'')&&core===numCore(old)&&val.length<old.length){if(/Backward/.test(e.inputType)&&sig>0){core=core.slice(0,sig-1)+core.slice(sig);sig--}else if(/Forward/.test(e.inputType))core=core.slice(0,sig)+core.slice(sig+1)}
+  const out=groupNum(core);if(out!==val)el.value=out;el._pv=out;
+  if(document.activeElement===el){let p=0,k=0;while(p<out.length&&k<sig){if(isSig(out[p]))k++;p++}try{el.setSelectionRange(p,p)}catch(_){}}}
 function money(n,signed=true){if(n==null||!isFinite(n))return'—';const s=signed?(n>0?'+':n<0?'−':''):(n<0?'−':'');return N(s+nf(Math.abs(n),2))}
 function price(n){if(n==null||!isFinite(n)||n===0)return'—';const a=Math.abs(n);return N(a>=1000?nf(n,2):a>=1?nf(n,2,4):nf(n,2,8))}
 function pct(n,signed=true){if(n==null||!isFinite(n))return'—';const s=signed?(n>0?'+':n<0?'−':''):'';return N(s+nf(Math.abs(n),1,2)+'%')}
@@ -599,28 +658,29 @@ function applyLang(){const h=document.documentElement,L=st().lang;h.lang=L;h.dir
   document.querySelectorAll('[data-i]').forEach(el=>el.textContent=t(el.dataset.i));
   document.querySelectorAll('[data-i-aria]').forEach(el=>el.setAttribute('aria-label',t(el.dataset.iAria)));
   $('viewTitle').textContent=t('nav.'+view);document.title=t('nav.'+view)+' · '+t('appName');}
-function applyTheme(){const h=document.documentElement.classList;h.toggle('light',st().theme==='light');h.remove('acc-blue','acc-teal');if(st().accent!=='amber')h.add('acc-'+st().accent);$('tc').content=st().theme==='light'?'#f4f6fa':'#0b0e14'}
+const THEMES={dark:{tc:'#0b0e14'},light:{tc:'#f4f6fa'},ocean:{tc:'#0b1026'}};
+function applyTheme(){const th=THEMES[st().theme]?st().theme:'dark',h=document.documentElement.classList;h.toggle('light',th==='light');h.toggle('ocean',th==='ocean');h.remove('acc-blue','acc-teal');if(th!=='ocean'&&st().accent!=='amber')h.add('acc-'+st().accent);$('tc').content=THEMES[th].tc}
 
 /* ---------------- Dashboard ---------------- */
 let eqRange='all';
 function rDash(){
   const el=$('v-dash'),A=analyze(S.trades),open=S.trades.filter(x=>x.status!=='closed');
   if(!S.trades.length){el.innerHTML=emptyState();return}
-  const strk=A.streak?`<span class="${A.streak>0?'pos':'neg'}">${N(dig(Math.abs(A.streak)))} ${A.streak>0?t('win'):t('loss')}</span>`:'—';
+  const strk=A.streak?`<span class="${A.streak>0?'pos':'neg'}">${N(int(Math.abs(A.streak)))} ${A.streak>0?t('win'):t('loss')}</span>`:'—';
   const kpi=(l,v,s='',c='')=>`<div class="kpi"><span class="l">${l}</span><span class="v ${c}">${v}</span>${s?`<span class="s">${s}</span>`:''}</div>`;
   const pf=A.pf==null?'—':A.pf===Infinity?'∞':N(nf(A.pf,2));
   el.innerHTML=`<div class="dash">
    <div class="stack">
     <div class="card"><div class="hero"><div><div class="lbl">${t('balance')} (${esc(st().currency)})</div><div class="bal">${money(A.bal,false)}</div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill ${cls(A.net)}">${money(A.net)} · ${pct(A.netPct)}</span><span class="pill">${t('openTrades')}: ${N(dig(open.length))}</span></div></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill ${cls(A.net)}">${money(A.net)} · ${pct(A.netPct)}</span><span class="pill">${t('openTrades')}: ${N(int(open.length))}</span></div></div></div>
     <div class="card"><h2>${t('equity')}<span class="seg" role="group" aria-label="${t('equity')}">${['all','d90','d30'].map(r=>`<button data-act="eq" data-v="${r}" aria-pressed="${eqRange===r}">${t(r)}</button>`).join('')}</span></h2><div class="chart" id="eqChart"></div></div>
     <div class="grid kpis">
-      ${kpi(t('winRate'),pct(A.winRate,false),`${N(dig(A.wins))} ${t('wins')} · ${N(dig(A.losses))} ${t('losses')}`)}
+      ${kpi(t('winRate'),pct(A.winRate,false),`${N(int(A.wins))} ${t('wins')} · ${N(int(A.losses))} ${t('losses')}`)}
       ${kpi(t('profitFactor'),pf,A.gl?`${money(A.gw,false)} / ${money(A.gl,false)}`:'',A.pf!=null?(A.pf>=1?'pos':'neg'):'')}
       ${kpi(t('avgR'),rfmt(A.avgR),'',cls(A.avgR))}
       ${kpi(t('expectancy'),money(A.exp),t('perTrade'),cls(A.exp))}
       ${kpi(t('maxDD'),N('−'+nf(A.ddp,1,2)+'%'),money(-A.dd),A.dd>0?'neg':'')}
-      ${kpi(t('streak'),strk,`${t('bestStreak')}: ${N(dig(A.maxW))}${t('wins')} / ${N(dig(A.maxL))}${t('losses')}`)}
+      ${kpi(t('streak'),strk,`${t('bestStreak')}: ${N(int(A.maxW))}${t('wins')} / ${N(int(A.maxL))}${t('losses')}`)}
       ${kpi(t('bestTrade'),A.best?money(A.best.c.pnl):'—',A.best?esc(A.best.x.sym):'','pos')}
       ${kpi(t('worstTrade'),A.worst?money(A.worst.c.pnl):'—',A.worst?esc(A.worst.x.sym):'',A.worst&&A.worst.c.pnl<0?'neg':'')}
     </div>
@@ -639,25 +699,29 @@ function drawEquity(el,A){
   if(pts.length<2)pts.push({t:Date.now(),y:pts[0].y});
   const t0=pts[0].t,t1=Math.max(pts[pts.length-1].t,t0+1);let lo=Math.min(...pts.map(p=>p.y)),hi=Math.max(...pts.map(p=>p.y));if(hi===lo){hi+=1;lo-=1}const padY=(hi-lo)*.1;lo-=padY;hi+=padY;
   const X=v=>pl+(v-t0)/(t1-t0)*(W-pl-pr),Y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb);
-  const up=pts[pts.length-1].y>=pts[0].y,col=up?'var(--pos)':'var(--neg)';
+  const up=pts[pts.length-1].y>=pts[0].y,oc=document.documentElement.classList.contains('ocean'),col=oc?'var(--eq)':up?'var(--pos)':'var(--neg)';
   const line=pts.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+' '+Y(p.y).toFixed(1)).join(' ');
   const area=line+` L${X(t1).toFixed(1)} ${H-pb} L${X(t0).toFixed(1)} ${H-pb}Z`;
-  const by=Y(A.start);const grid=[hi-padY,(hi+lo)/2,lo+padY].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--border)" stroke-dasharray="3 4"/><text class="axis" x="${W-pr-2}" y="${Y(v)-4}" text-anchor="end">${dig(nf(v,0))}</text>`).join('');
+  const by=Y(A.start);const grid=[hi-padY,(hi+lo)/2,lo+padY].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--border)" stroke-dasharray="3 4"/><text class="axis" x="${W-pr-2}" y="${Y(v)-4}" text-anchor="end">${nf(v,0)}</text>`).join('');
   const dl=d=>fdate(new Date(d),{month:'short',day:'numeric'});
-  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('equity')}: ${esc(nf(pts[0].y,2))} → ${esc(nf(pts[pts.length-1].y,2))}">
-   <defs><linearGradient id="eqg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${up?'#22c55e':'#f2555a'}" stop-opacity=".22"/><stop offset="1" stop-color="${up?'#22c55e':'#f2555a'}" stop-opacity="0"/></linearGradient></defs>
-   ${grid}${by>pt&&by<H-pb?`<line x1="${pl}" x2="${W-pr}" y1="${by}" y2="${by}" stroke="var(--faint)" stroke-width="1"/>`:''}
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" tabindex="0" aria-label="${t('equity')}: ${esc(nf(pts[0].y,2))} → ${esc(nf(pts[pts.length-1].y,2))}. ${t('chartKeys')}">
+   <defs><linearGradient id="eqg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:${col};stop-opacity:${oc?.2:.22}"/><stop offset="1" style="stop-color:${col};stop-opacity:${oc?.03:0}"/></linearGradient></defs>
+   ${grid}${by>pt&&by<H-pb?`<line x1="${pl}" x2="${W-pr}" y1="${by}" y2="${by}" stroke="${oc?'var(--muted)':'var(--sec)'}" stroke-opacity="${oc?.45:.7}" stroke-width="1"/>`:''}
    <path d="${area}" fill="url(#eqg)"/><path d="${line}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
    <text class="axis" x="${pl}" y="${H-6}">${dl(t0)}</text><text class="axis" x="${W-pr}" y="${H-6}" text-anchor="end">${dl(t1)}</text>
    <line id="eqx" y1="${pt}" y2="${H-pb}" stroke="var(--muted)" stroke-dasharray="2 3" visibility="hidden"/><circle id="eqd" r="4.5" fill="${col}" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
   </svg><div class="tip" id="eqTip"></div>`;
   const svg=el.querySelector('svg'),tip=$('eqTip'),vx=svg.querySelector('#eqx'),dot=svg.querySelector('#eqd');
-  const move=e=>{const r=svg.getBoundingClientRect(),mx=(e.clientX-r.left)/r.width*W;let b=pts[0];for(const p of pts)if(Math.abs(X(p.t)-mx)<Math.abs(X(b.t)-mx))b=p;
+  let ki=-1;
+  const show=b=>{const r=svg.getBoundingClientRect();
     const px=X(b.t),py=Y(b.y);vx.setAttribute('x1',px);vx.setAttribute('x2',px);vx.setAttribute('visibility','visible');dot.setAttribute('cx',px);dot.setAttribute('cy',py);dot.setAttribute('visibility','visible');
     tip.innerHTML=`<span class="mut">${fdate(new Date(b.t),{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span><b>${money(b.y,false)}</b>${b.p!=null?`<span class="${cls(b.p)}">${money(b.p)}</span>`:''}`;
     tip.style.left=Math.min(Math.max(px/W*r.width,70),r.width-70)+'px';tip.classList.add('on')};
+  const move=e=>{const r=svg.getBoundingClientRect(),mx=(e.clientX-r.left)/r.width*W;let bi=0;pts.forEach((p,i)=>{if(Math.abs(X(p.t)-mx)<Math.abs(X(pts[bi].t)-mx))bi=i});ki=bi;show(pts[bi])};
   const leave=()=>{tip.classList.remove('on');vx.setAttribute('visibility','hidden');dot.setAttribute('visibility','hidden')};
   svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);svg.addEventListener('pointerleave',leave);
+  svg.addEventListener('keydown',e=>{const k={ArrowLeft:-1,ArrowRight:1,ArrowDown:-1,ArrowUp:1}[e.key];if(e.key==='Home')ki=0;else if(e.key==='End')ki=pts.length-1;else if(k)ki=ki<0?(k>0?0:pts.length-1):Math.min(pts.length-1,Math.max(0,ki+k));else return;e.preventDefault();show(pts[ki])});
+  svg.addEventListener('blur',leave);
 }
 
 /* ---------------- Trades list ---------------- */
@@ -667,7 +731,7 @@ function tradeRow(x){const c=calc(x),r=resultOf(x);
   const meta=[x.mkt==='fut'?t('futures')+' '+N(dig(c.lev+'x')):t('spot'),x.setup?esc(x.setup):'',x.tf?N(dig(x.tf)):''].filter(Boolean).join(' · ');
   return`<div class="trade" role="button" tabindex="0" data-act="edit" data-id="${x.id}" aria-label="${esc(x.sym)} ${t(x.side)}">
    <span class="side-dot ${x.side}"></span>
-   <div class="mid"><div class="sym">${symFmt(x.sym)}<span class="tag ${x.side}">${t(x.side)}</span>${x.status!=='closed'?`<span class="tag">${t('open')}</span>`:''}${x.demo?`<span class="tag">${t('demoTag')}</span>`:''}</div>
+   <div class="mid"><div class="sym">${symFmt(x.sym)}<span class="tag ${x.side}">${t(x.side)}</span>${x.status!=='closed'?`<span class="tag sec">${t('open')}</span>`:''}${x.demo?`<span class="tag">${t('demoTag')}</span>`:''}</div>
      <div class="meta">${meta||'&nbsp;'}</div><div class="meta">${fDT(x.status==='closed'?x.close||x.open:x.open)}</div></div>
    <div class="end">${r==='open'?`<span class="pnl mut">${price(+x.entry)}</span><span class="sub">${t('entry')}</span>`:`<span class="pnl ${cls(c.pnl)}">${money(c.pnl)}</span><span class="sub">${pct(c.pct)} · ${rfmt(c.R)}</span>`}</div>
    <button class="del" data-act="del" data-id="${x.id}" aria-label="${t('delete')} ${esc(x.sym)}">${ico('trash')}</button></div>`}
@@ -694,7 +758,7 @@ function rTrades(){
 }
 function rList(){const box=$('tlist');if(!box)return;const L=filtered(),A=analyze(L);
   if(!L.length){box.innerHTML=`<div class="card empty" style="margin-top:12px"><p>${t('noMatch')}</p></div>`;return}
-  let html=`<div class="sumbar"><span class="pill">${N(dig(L.length))} ${t('trades')}</span><span class="pill ${cls(A.net)}">${money(A.net)}</span><span class="pill">${t('winRate')} ${pct(A.winRate,false)}</span><span class="pill">${t('avgR')} ${rfmt(A.avgR)}</span></div>`;
+  let html=`<div class="sumbar"><span class="pill">${N(int(L.length))} ${t('trades')}</span><span class="pill ${cls(A.net)}">${money(A.net)}</span><span class="pill">${t('winRate')} ${pct(A.winRate,false)}</span><span class="pill">${t('avgR')} ${rfmt(A.avgR)}</span></div>`;
   let last='';for(const x of L){const d=new Date(x.open||0),k=dayKey(d);if(k!==last){html+=`<div class="day-h">${fDay(d)}</div>`;last=k}html+=tradeRow(x)}
   box.innerHTML=html}
 
@@ -718,22 +782,22 @@ function rCal(){
   const compact=v=>{const a=Math.abs(v);return(v>0?'+':v<0?'−':'')+(a>=1000?nf(a/1000,0,1)+'k':nf(a,0))};
   let cells=order.map(i=>`<div class="wd" aria-hidden="true">${t('wdShort')[i]}</div>`).join('')+'<div class="d x"></div>'.repeat(lead);
   for(const d of days){const k=dayKey(d),v=dp[k],dn=fa?jParts(d).d:d.getDate();
-    let style='';if(v){const a=Math.round(18+Math.min(1,Math.abs(v.p)/mx)*62);style=`background:color-mix(in srgb,var(${v.p>=0?'--pos':'--neg'}) ${a}%,var(--surface2))`}
-    const lab=`${fDay(d)}${v?': '+(v.p>=0?'+':'−')+nf(Math.abs(v.p),2)+' USDT, '+v.n+' '+t('trades'):''}`;
-    cells+=`<button class="d${v?' has':''}${k===today?' today':''}${calSel===k?' sel':''}" ${v?`data-act="calDay" data-k="${k}"`:'tabindex="-1"'} aria-label="${esc(lab)}" style="${style}"><span class="dn" ${v&&Math.abs(v.p)/mx>.55?'style="color:var(--text)"':''}>${dig(dn)}</span>${v?`<span class="dp" style="color:var(--text)">${N(compact(v.p))}</span>`:''}</button>`}
+    let style='';if(v){const a=Math.round(14+Math.min(1,Math.abs(v.p)/mx)*30);style=`background:color-mix(in srgb,var(${v.p>=0?'--heat-pos':'--heat-neg'}) ${a}%,var(--surface2))`}
+    const lab=`${fDay(d)}${v?': '+(v.p>=0?'+':'−')+nf(Math.abs(v.p),2)+' USDT, '+int(v.n)+' '+t('trades'):''}`;
+    cells+=`<button class="d${v?' has':''}${k===today?' today':''}${calSel===k?' sel':''}" ${v?`data-act="calDay" data-k="${k}"`:'tabindex="-1"'} aria-label="${esc(lab)}" style="${style}"><span class="dn" ${v?'style="color:var(--text)"':''}>${dig(dn)}</span>${v?`<span class="dp" style="color:var(--text)">${N(compact(v.p))}</span>`:''}</button>`}
   let side='';if(calSel&&dp[calSel]){const ids=dp[calSel].ids;side=`<div class="card"><h2>${t('dayTrades')}<small>${fDay(new Date(calSel+'T12:00'))}</small></h2>${S.trades.filter(x=>ids.includes(x.id)).map(tradeRow).join('')}</div>`}
   else side=`<div class="card empty"><p>${t('pickDay')}</p></div>`;
   el.innerHTML=`<div class="cal-g stack"><div class="card"><div class="cal-head"><button class="icon-btn" data-act="calMove" data-v="-1" aria-label="${t('prev')}">${ico(fa?'right':'left')}</button><div class="t">${title}</div><button class="icon-btn" data-act="calMove" data-v="1" aria-label="${t('next')}">${ico(fa?'left':'right')}</button></div>
-   <div class="sumbar"><span class="pill ${cls(tot)}">${t('monthTotal')}: ${money(tot)}</span><span class="pill">${t('tradingDays')}: ${N(dig(vals.length))}</span><span class="pill pos">${t('greenDays')}: ${N(dig(gd))}</span><span class="pill neg">${t('redDays')}: ${N(dig(rd))}</span></div>
+   <div class="sumbar"><span class="pill ${cls(tot)}">${t('monthTotal')}: ${money(tot)}</span><span class="pill">${t('tradingDays')}: ${N(int(vals.length))}</span><span class="pill pos">${t('greenDays')}: ${N(int(gd))}</span><span class="pill neg">${t('redDays')}: ${N(int(rd))}</span></div>
    <div class="cal">${cells}</div>
-   <div class="legend">${t('less')}<i style="background:color-mix(in srgb,var(--neg) 80%,var(--surface2))"></i><i style="background:color-mix(in srgb,var(--neg) 30%,var(--surface2))"></i><i style="background:var(--surface2)"></i><i style="background:color-mix(in srgb,var(--pos) 30%,var(--surface2))"></i><i style="background:color-mix(in srgb,var(--pos) 80%,var(--surface2))"></i>${t('more')}</div></div>${side}</div>`;
+   <div class="legend">${t('less')}<i style="background:color-mix(in srgb,var(--heat-neg) 44%,var(--surface2))"></i><i style="background:color-mix(in srgb,var(--heat-neg) 22%,var(--surface2))"></i><i style="background:var(--surface2)"></i><i style="background:color-mix(in srgb,var(--heat-pos) 22%,var(--surface2))"></i><i style="background:color-mix(in srgb,var(--heat-pos) 44%,var(--surface2))"></i>${t('more')}</div></div>${side}</div>`;
 }
 
 /* ---------------- Stats ---------------- */
 function groupStats(key,labelFn,orderFn){const m=new Map();for(const x of S.trades){if(x.status!=='closed')continue;const c=calc(x);if(c.pnl==null)continue;const k=key(x);if(k==null||k==='')continue;
   const g=m.get(k)||{k,n:0,w:0,p:0,r:0,nr:0};g.n++;if(c.pnl>0)g.w++;g.p+=c.pnl;if(c.R!=null){g.r+=c.R;g.nr++}m.set(k,g)}
   let arr=[...m.values()];arr=orderFn?arr.sort(orderFn):arr.sort((a,b)=>b.p-a.p);const mx=Math.max(1e-9,...arr.map(g=>Math.abs(g.p)));
-  return arr.map(g=>{const w=Math.abs(g.p)/mx*50;return`<div class="srow"><div class="nm">${labelFn?labelFn(g.k):esc(g.k)}<small>${N(dig(g.n))} ${t('trades')} · ${pct(g.w/g.n*100,false)}</small></div>
+  return arr.map(g=>{const w=Math.abs(g.p)/mx*50;return`<div class="srow"><div class="nm">${labelFn?labelFn(g.k):esc(g.k)}<small>${N(int(g.n))} ${t('trades')} · <span style="white-space:nowrap">${t('winShort')} ${N(nf(g.w/g.n*100,0)+'%')}</span></small></div>
    <div class="bar" aria-hidden="true"><i class="${g.p>=0?'p':'n'}" style="width:${w.toFixed(1)}%"></i></div>
    <div class="vv ${cls(g.p)}">${money(g.p)}<small>${g.nr?rfmt(g.r/g.nr):'—'}</small></div></div>`}).join('')||`<p class="mut">—</p>`}
 function rStats(){
@@ -742,7 +806,7 @@ function rStats(){
   const wkStart=st().lang==='fa'?6:1,emoL=k=>{const e=[...EMO_B,...EMO_A].find(a=>a[0]===k);return(e?e[1]+' ':'')+esc(t('emo')[k]||k)};
   const card=(h,body)=>`<div class="card"><h2>${h}</h2>${body}</div>`;
   el.innerHTML=`<div class="grid kpis" style="margin-bottom:var(--gap)">
-     <div class="kpi"><span class="l">${t('totalTrades')}</span><span class="v">${N(dig(A.n))}</span></div>
+     <div class="kpi"><span class="l">${t('totalTrades')}</span><span class="v">${N(int(A.n))}</span></div>
      <div class="kpi"><span class="l">${t('winRate')}</span><span class="v">${pct(A.winRate,false)}</span></div>
      <div class="kpi"><span class="l">${t('avgR')}</span><span class="v ${cls(A.avgR)}">${rfmt(A.avgR)}</span></div>
      <div class="kpi"><span class="l">${t('netPnl')}</span><span class="v ${cls(A.net)}">${money(A.net)}</span></div></div>
@@ -761,6 +825,7 @@ function rStats(){
 function rSettings(){
   const s=st(),locked=!!localStorage.getItem(LK),hasDemo=S.trades.some(x=>x.demo);
   const segB=(act,v,cur,l)=>`<button data-act="${act}" data-v="${v}" aria-pressed="${cur===v}">${l}</button>`;
+  const tcard=(v,[bg,sf,ac,po,ne,mu,hl])=>`<button class="tcard" data-act="theme" data-v="${v}" aria-pressed="${s.theme===v}"><span class="pv" aria-hidden="true" style="background:${bg}"><span class="row"><span class="dot" style="background:${ac}"></span><i style="flex:1;background:${sf}"></i>${hl?`<span class="dot" style="background:${hl};width:8px;height:8px"></span>`:''}</span><i style="width:70%;background:${po}"></i><span class="row"><i style="width:40%;background:${ne}"></i><i style="width:28%;background:${mu};opacity:.6"></i></span></span><span class="nm">${t(v)}${ico('check')}</span></button>`;
   const sw=(v,c)=>`<button class="swatch" data-act="accent" data-v="${v}" aria-pressed="${s.accent===v}" aria-label="${t(v)}" title="${t(v)}"><i style="background:${c}"></i></button>`;
   $('v-settings').innerHTML=`<div class="set-g stack">
    <div class="stack">
@@ -769,11 +834,11 @@ function rSettings(){
      ${s.lang==='fa'?`<div class="set-row"><label class="l" for="sDig">${t('digits')}<small>${t('digitsSub')}</small></label><label class="check"><input type="checkbox" id="sDig" ${s.digits==='fa'?'checked':''}></label></div>`:''}
     </div>
     <div class="card"><h2>${t('sAppearance')}</h2>
-     <div class="set-row"><div class="l">${t('theme')}</div><div class="seg" role="group">${segB('theme','dark',s.theme,t('dark'))}${segB('theme','light',s.theme,t('light'))}</div></div>
-     <div class="set-row"><div class="l">${t('accent')}</div><div class="chips">${sw('amber','#f5a524')}${sw('blue','#4c8dff')}${sw('teal','#2dd4bf')}</div></div>
+     <div class="set-row col"><div class="l" id="thL">${t('theme')}</div><div class="themes" role="group" aria-labelledby="thL">${tcard('dark',['#0b0e14','#121722','#f5a524','#22c55e','#f2555a','#949eb0'])}${tcard('light',['#f4f6fa','#ffffff','#f59e0b','#137333','#c62020','#556074'])}${tcard('ocean',['#0b1026','#19234a','#0abab5','#4ade80','#ff7a8a','#a99bff','#f7c948'])}</div></div>
+     ${s.theme==='ocean'?`<div class="set-row"><div class="l">${t('accent')}<small>${t('oceanNote')}</small></div></div>`:`<div class="set-row"><div class="l">${t('accent')}</div><div class="chips">${sw('amber','#f5a524')}${sw('blue','#4c8dff')}${sw('teal','#2dd4bf')}</div></div>`}
     </div>
     <div class="card"><h2>${t('sAccount')}</h2>
-     <div class="set-row"><label class="l" for="sBal">${t('startBal')}<small>${t('startBalSub')}</small></label><div class="inp-g" style="width:180px"><input class="inp ltr" id="sBal" inputmode="decimal" value="${esc(s.startBal)}"></div></div>
+     <div class="set-row"><label class="l" for="sBal">${t('startBal')}<small>${t('startBalSub')}</small></label><div class="inp-g" style="width:180px"><input class="inp ltr numf" id="sBal" inputmode="decimal" autocomplete="off" value="${esc(fmtIn(s.startBal))}"></div></div>
      <div class="set-row"><div class="l">${t('currency')}</div><span class="pill acc" style="font-family:var(--f-en)">USDT</span></div>
      <div style="padding-top:12px"><div class="l" style="font-weight:600;margin-bottom:10px">${t('manageSetups')}</div>
       <div class="chips" id="setupChips">${S.setups.map((x,i)=>`<span class="chip">${esc(x)}<button class="x" data-act="rmSetup" data-i="${i}" aria-label="${t('delete')} ${esc(x)}">${ico('x')}</button></span>`).join('')}</div>
@@ -781,7 +846,7 @@ function rSettings(){
     </div>
    </div>
    <div class="stack">
-    <div class="card"><h2>${t('sData')}<small>${N(dig(S.trades.length))} ${t('trades')}</small></h2>
+    <div class="card"><h2>${t('sData')}<small>${N(int(S.trades.length))} ${t('trades')}</small></h2>
      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <button class="btn" data-act="exportJson">${ico('down')}${t('exportJson')}</button>
       <button class="btn" data-act="importJson">${ico('up')}${t('importJson')}</button>
@@ -812,28 +877,29 @@ function openForm(id){
 function closeForm(){$('sheet').classList.remove('on');$('ovl').classList.remove('on');document.body.style.overflow='';FT=null}
 function buildForm(){const x=FT;
   const seg=(name,opts)=>`<div class="seg full" role="group" data-seg="${name}">${opts.map(([v,l,c])=>`<button type="button" class="${c||''}" data-v="${v}" aria-pressed="${String(x[name])===String(v)}">${l}</button>`).join('')}</div>`;
-  const inp=(name,label,ph='',extra='')=>`<div class="f"><label for="f_${name}">${label}</label><input class="inp ltr" id="f_${name}" name="${name}" inputmode="decimal" autocomplete="off" placeholder="${ph}" value="${esc(x[name])}" ${extra}><span class="err" id="e_${name}"></span></div>`;
-  const emo=(name,list)=>`<div class="chips" role="group" data-chips="${name}">${list.map(([k,e])=>`<button type="button" class="chip" data-v="${k}" aria-pressed="${x[name]===k}">${e} ${esc(t('emo')[k])}</button>`).join('')}</div>`;
+  const rq=`<span class="req" aria-hidden="true">*</span><span class="sr"> (${t('required')})</span>`;
+  const inp=(name,label,ph='',req=false)=>`<div class="f"><label for="f_${name}">${label}${req?rq:''}</label><input class="inp ltr numf" id="f_${name}" name="${name}" inputmode="decimal" autocomplete="off" placeholder="${ph}" value="${esc(fmtIn(x[name]))}" aria-describedby="e_${name}"><span class="err" id="e_${name}"></span></div>`;
+  const emo=(name,list)=>`<div class="chips" role="group" data-chips="${name}">${list.map(([k,e])=>`<button type="button" class="chip" data-v="${k}" aria-pressed="${x[name]===k}"><span aria-hidden="true">${e}</span> ${esc(t('emo')[k])}</button>`).join('')}</div>`;
   $('sheetB').innerHTML=`
   <div class="fsec"><h3>${t('secBasics')}</h3><div class="fg">
-    <div class="f w"><label for="f_sym">${t('pair')}</label><input class="inp ltr" id="f_sym" name="sym" list="symList" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BTCUSDT" value="${esc(x.sym)}" maxlength="20">
+    <div class="f w"><label for="f_sym">${t('pair')}${rq}</label><input class="inp ltr" id="f_sym" aria-describedby="e_sym" name="sym" list="symList" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BTCUSDT" value="${esc(x.sym)}" maxlength="20">
       <datalist id="symList">${[...new Set(S.trades.map(z=>z.sym))].map(s=>`<option value="${esc(s)}">`).join('')}</datalist>
       <div class="sugg">${recentSyms().map(s=>`<button type="button" data-act="pickSym" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div><span class="err" id="e_sym"></span></div>
     <div class="f"><span class="lb">${t('market')}</span>${seg('mkt',[['spot',t('spot')],['fut',t('futures')]])}</div>
     <div class="f"><span class="lb">${t('side')}</span>${seg('side',[['long',t('long'),'long'],['short',t('short'),'short']])}</div>
-    <div class="f" id="levBox" ${x.mkt==='spot'?'hidden':''}><label for="f_lev">${t('leverage')}</label><input class="inp ltr" id="f_lev" name="lev" inputmode="decimal" value="${esc(x.lev)}" placeholder="10"></div>
+    <div class="f" id="levBox" ${x.mkt==='spot'?'hidden':''}><label for="f_lev">${t('leverage')}</label><input class="inp ltr numf" id="f_lev" name="lev" inputmode="decimal" autocomplete="off" value="${esc(fmtIn(x.lev))}" placeholder="10"></div>
     <div class="f"><span class="lb">${t('status')}</span>${seg('status',[['closed',t('closed')],['open',t('open')]])}</div>
   </div></div>
   <div class="fsec"><h3>${t('secPrices')}</h3><div class="fg fg2">
-    ${inp('entry',t('entry'),'0.00')}${inp('exit',t('exit'),'0.00')}
+    ${inp('entry',t('entry'),'0.00',true)}<div id="exitWrap" ${x.status==='open'?'hidden':''}>${inp('exit',t('exit'),'0.00',true)}</div>
     ${inp('sl',t('sl'),'0.00')}${inp('tp',t('tp'),'0.00')}
-    <div class="f"><label for="f_size">${t('size')}</label><input class="inp ltr" id="f_size" name="size" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${esc(x.size)}"><div class="seg full" role="group" data-seg="sizeMode" style="margin-top:4px">${[['usdt',t('sizeUsdt')],['qty',t('sizeQty')]].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${x.sizeMode===v}">${l}</button>`).join('')}</div><span class="err" id="e_size"></span></div>
+    <div class="f"><label for="f_size">${t('size')}${rq}</label><input class="inp ltr numf" id="f_size" aria-describedby="e_size" name="size" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${esc(fmtIn(x.size))}"><div class="seg full" role="group" data-seg="sizeMode" style="margin-top:4px">${[['usdt',t('sizeUsdt')],['qty',t('sizeQty')]].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${x.sizeMode===v}">${l}</button>`).join('')}</div><span class="err" id="e_size"></span></div>
     ${inp('fees',t('fees'),'0.00')}
   </div></div>
   <div class="fsec"><h3>${t('secCalc')}</h3><div class="calc" id="calcBox"></div></div>
   <div class="fsec"><h3>${t('secTime')}</h3><div class="fg">
     <div class="f"><label for="f_open">${t('openAt')}</label><input class="inp" type="datetime-local" id="f_open" name="open" value="${esc(x.open)}"><span class="hint" id="h_open"></span></div>
-    <div class="f" id="closeBox" ${x.status==='open'?'hidden':''}><label for="f_close">${t('closeAt')}</label><input class="inp" type="datetime-local" id="f_close" name="close" value="${esc(x.close)}"><span class="hint" id="h_close"></span><span class="err" id="e_close"></span></div>
+    <div class="f" id="closeBox" ${x.status==='open'?'hidden':''}><label for="f_close">${t('closeAt')}</label><input class="inp" type="datetime-local" id="f_close" aria-describedby="h_close e_close" name="close" value="${esc(x.close)}"><span class="hint" id="h_close"></span><span class="err" id="e_close"></span></div>
   </div></div>
   <div class="fsec"><h3>${t('secStrategy')}</h3>
     <div class="f"><span class="lb">${t('setup')}</span><div class="chips" role="group" data-chips="setup" id="setupBox">${S.setups.map(s=>`<button type="button" class="chip" data-v="${esc(s)}" aria-pressed="${x.setup===s}">${esc(s)}</button>`).join('')}</div>
@@ -932,11 +998,12 @@ let lastHide=0;document.addEventListener('visibilitychange',()=>{if(document.hid
 
 /* ---------------- Events ---------------- */
 document.addEventListener('click',async e=>{
+  if(e.target.closest('.skip')){e.preventDefault();$('main').focus();return}
   const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
   const a=e.target.closest('[data-act]');
   // segmented / chip groups inside the form
   const sg=e.target.closest('[data-seg] button');if(sg&&FT){const name=sg.parentElement.dataset.seg;FT[name]=sg.dataset.v;sg.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===sg));
-    if(name==='mkt')$('levBox').hidden=FT.mkt==='spot';if(name==='status'){$('closeBox').hidden=FT.status==='open';if(FT.status==='closed'&&!$('f_close').value){const n=new Date();n.setSeconds(0,0);$('f_close').value=localISO(n);updDateHints()}}updCalc();return}
+    if(name==='mkt')$('levBox').hidden=FT.mkt==='spot';if(name==='status'){$('closeBox').hidden=$('exitWrap').hidden=FT.status==='open';if(FT.status==='closed'&&!$('f_close').value){const n=new Date();n.setSeconds(0,0);$('f_close').value=localISO(n);updDateHints()}}updCalc();return}
   const cp=e.target.closest('[data-chips] .chip');if(cp&&FT){const name=cp.parentElement.dataset.chips;FT[name]=FT[name]===cp.dataset.v?'':cp.dataset.v;cp.parentElement.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',FT[name]===b.dataset.v));return}
   if(!a)return;const act=a.dataset.act,v=a.dataset.v;
   switch(act){
@@ -981,7 +1048,9 @@ $('sheet').addEventListener('submit',submitForm);
 $('sheet').addEventListener('input',e=>{if(e.target.matches('.inp')){updCalc();if(e.target.type==='datetime-local')updDateHints();if(e.target.id&&$('e_'+e.target.id.slice(2)))$('e_'+e.target.id.slice(2)).textContent=''}});
 $('fileShot').addEventListener('change',async e=>{for(const f of e.target.files){try{FShots.push({k:null,v:await compressImage(f)})}catch(err){console.error(err)}}e.target.value='';rShots()});
 $('fileImport').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)importJson(f)});
+document.addEventListener('compositionend',e=>{if(e.target.classList&&e.target.classList.contains('numf'))liveNum(e.target)});
 document.addEventListener('input',e=>{
+  if(e.target.classList&&e.target.classList.contains('numf'))liveNum(e.target,e);
   if(e.target.id==='fq'){F.q=e.target.value;rList()}
   if(e.target.id==='sBal'){const n=parseNum(e.target.value);if(isFinite(n)&&n>=0){st().startBal=n;save()}}
 });
